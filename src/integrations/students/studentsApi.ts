@@ -19,6 +19,11 @@ export async function listStudents(
   return data
 }
 
+export async function getStudentById(id: number): Promise<Student> {
+  const { data } = await api.get<Student>(`/listStudentById/${id}`)
+  return data
+}
+
 export async function createStudent(
   payload: CreateStudentPayload,
 ): Promise<Student> {

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   listStudents,
+  getStudentById,
   createStudent,
   updateStudent,
   deleteStudent,
@@ -24,6 +25,15 @@ export function useStudents(
   })
 }
 
+export function useStudent(id: number | undefined) {
+  return useQuery({
+    queryKey: ['student', id],
+    queryFn: () => getStudentById(id!),
+    enabled: id !== undefined,
+    staleTime: 3 * 60 * 1000,
+  })
+}
+
 export function useCreateStudent() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -40,10 +50,16 @@ export function useCreateStudent() {
 export function useUpdateStudent() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: UpdateStudentPayload }) =>
-      updateStudent(id, payload),
-    onSuccess: () => {
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: number
+      payload: UpdateStudentPayload
+    }) => updateStudent(id, payload),
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['students'] })
+      queryClient.invalidateQueries({ queryKey: ['student', id] })
     },
     onError: (error) => {
       console.error('[useUpdateStudent]', error)

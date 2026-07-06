@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { ChevronLeft, ChevronRight, Search, UserPlus, Users } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import { toast } from 'sonner'
-import { useStudents, useDeleteStudent, useRestoreStudent } from '@/hooks/useStudents'
+import {
+  useStudents,
+  useDeleteStudent,
+  useRestoreStudent,
+} from '@/hooks/useStudents'
 import { Button } from '@/components/ui/Button'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { StudentTable } from './-components/StudentTable'
@@ -27,8 +37,10 @@ function AlunosPage() {
   const [pendingDelete, setPendingDelete] = useState<Student | null>(null)
   const [pendingRestore, setPendingRestore] = useState<Student | null>(null)
 
-  const { mutateAsync: deleteStudent, isPending: isDeleting } = useDeleteStudent()
-  const { mutateAsync: restoreStudent, isPending: isRestoring } = useRestoreStudent()
+  const { mutateAsync: deleteStudent, isPending: isDeleting } =
+    useDeleteStudent()
+  const { mutateAsync: restoreStudent, isPending: isRestoring } =
+    useRestoreStudent()
 
   const { data, isLoading, isError } = useStudents({
     page,
@@ -59,11 +71,6 @@ function AlunosPage() {
     navigate({
       to: '/admin/alunos/$id/boletim',
       params: { id: String(student.student_id) },
-      search: {
-        name: student.student_name,
-        email: student.student_email,
-        photo: student.student_photo ?? undefined,
-      },
     })
   }
 
@@ -86,7 +93,9 @@ function AlunosPage() {
       toast.success('Aluno excluído com sucesso')
       setPendingDelete(null)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao excluir aluno')
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao excluir aluno',
+      )
     }
   }
 
@@ -97,7 +106,9 @@ function AlunosPage() {
       toast.success(message)
       setPendingRestore(null)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao restaurar aluno')
+      toast.error(
+        error instanceof Error ? error.message : 'Erro ao restaurar aluno',
+      )
     }
   }
 

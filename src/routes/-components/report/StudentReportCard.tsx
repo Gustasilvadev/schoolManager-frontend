@@ -6,6 +6,7 @@ import {
   useCalculateAveragesBatch,
 } from '@/hooks/useFinalAverages'
 import { useClassDisciplineNameMap } from '@/hooks/useClassDisciplineNameMap'
+import { useStudent } from '@/hooks/useStudents'
 import { DisciplineGradeCard } from './DisciplineGradeCard'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
@@ -14,39 +15,59 @@ import { Calculator, Loader2 } from 'lucide-react'
 
 interface StudentReportCardProps {
   studentId: string
-  studentName?: string
-  studentEmail?: string
-  studentPhoto?: string | null
   canCalculate?: boolean
   canRecalculateAll?: boolean
 }
 
 export function StudentReportCard({
   studentId,
-  studentName,
-  studentEmail,
-  studentPhoto,
   canCalculate,
   canRecalculateAll = false,
 }: StudentReportCardProps) {
+  const numericStudentId = Number(studentId)
+  const {
+    data: student,
+    isLoading: isLoadingStudent,
+    isError: isStudentError,
+  } = useStudent(
+    Number.isFinite(numericStudentId) ? numericStudentId : undefined,
+  )
+
   const { data: grades, isLoading: isLoadingGrades } = useQuery({
     queryKey: ['grades', 'byStudent', studentId],
     queryFn: () => listGradesByStudent(studentId),
     enabled: !!studentId,
   })
 
-  const { data: averages, isLoading: isLoadingAverages } = useStudentFinalAverages(studentId)
+  const { data: averages, isLoading: isLoadingAverages } =
+    useStudentFinalAverages(studentId)
   const { mutate: calculateAverage } = useCalculateFinalAverage()
-  const { mutate: recalculateAll, isPending: isRecalculating } = useCalculateAveragesBatch()
+  const { mutate: recalculateAll, isPending: isRecalculating } =
+    useCalculateAveragesBatch()
   const { nameMap: disciplineNames } = useClassDisciplineNameMap()
 
-  if (isLoadingGrades || isLoadingAverages) {
+  if (isLoadingStudent || isLoadingGrades || isLoadingAverages) {
     return (
       <div className="flex h-[300px] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     )
   }
+
+  if (isStudentError || !student) {
+    return (
+      <div className="rounded-lg border border-yellow-800 bg-yellow-950 px-4 py-3 text-sm text-yellow-300">
+        Não foi possível carregar os dados cadastrais do aluno.
+      </div>
+    )
+  }
+
+  const statusLabel =
+    student.student_status === 2
+      ? 'Inativo'
+      : student.student_status === 1
+        ? 'Ativo'
+        : '—'
 
   const gradesByDiscipline = new Map<string, GradeWithTest[]>()
   for (const grade of grades ?? []) {
@@ -68,14 +89,18 @@ export function StudentReportCard({
     <div className="space-y-8">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex items-center gap-6">
         <Avatar
-          src={studentPhoto}
-          name={studentName}
+          src={student.student_photo}
+          name={student.student_name}
           size="lg"
           fallbackClassName="bg-blue-600/20 text-blue-400"
         />
         <div className="space-y-1">
-          <h2 className="text-xl font-bold text-white">{studentName || 'Aluno'}</h2>
-          <p className="text-slate-400 text-sm">E-mail: {studentEmail || '—'} • Status: Ativo</p>
+          <h2 className="text-xl font-bold text-white">
+            {student.student_name || 'Aluno'}
+          </h2>
+          <p className="text-slate-400 text-sm">
+            E-mail: {student.student_email || '—'} • Status: {statusLabel}
+          </p>
         </div>
 
         {canRecalculateAll && (
@@ -117,7 +142,9 @@ export function StudentReportCard({
 
         {gradesByDiscipline.size === 0 && (
           <div className="col-span-full py-20 text-center bg-slate-900/20 rounded-2xl border border-dashed border-slate-800">
-            <p className="text-slate-500">Nenhuma nota lançada para este aluno ainda.</p>
+            <p className="text-slate-500">
+              Nenhuma nota lançada para este aluno ainda.
+            </p>
           </div>
         )}
       </div>
