@@ -20,7 +20,7 @@ export async function listTeachers(
 }
 
 export async function getTeacherById(id: number): Promise<Teacher> {
-  const { data } = await api.get<Teacher>(`/getTeacherById/${id}`)
+  const { data } = await api.get<Teacher>(`/listTeacherById/${id}`)
   return data
 }
 
@@ -65,7 +65,9 @@ export async function associateDiscipline(
   teacherId: number,
   disciplineId: number,
 ): Promise<void> {
-  await api.post(`/linkDiscipline/${teacherId}`, { discipline_id: disciplineId })
+  await api.post(`/linkDiscipline/${teacherId}`, {
+    discipline_id: disciplineId,
+  })
 }
 
 export async function removeDisciplineAssociation(
