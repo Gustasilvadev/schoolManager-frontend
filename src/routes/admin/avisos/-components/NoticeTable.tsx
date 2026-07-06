@@ -140,7 +140,7 @@ export function NoticeTable({
       header: 'Ações',
       cell: ({ row }) => {
         const notice = row.original
-        const isDeleted = notice.notice_status === 2
+        const isDeleted = Number(notice.notice_status) === 2
 
         return (
           <div className="flex items-center gap-1">

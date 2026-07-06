@@ -17,6 +17,16 @@ import type {
 } from '@/types/notice'
 import { toast } from 'sonner'
 
+function isPublicNoticeCreateGatewayError(
+  error: Error,
+  payload: CreateNoticePayload,
+) {
+  const status = (error as Error & { status?: number }).status
+  const isPublic = !payload.teacher_ids || payload.teacher_ids.length === 0
+
+  return status === 502 && isPublic
+}
+
 export function useTeacherNotices(teacherId: number | undefined) {
   return useQuery({
     queryKey: ['notices', 'teacher', teacherId],
@@ -87,7 +97,16 @@ export function useCreateNotice() {
       void qc.invalidateQueries({ queryKey: ['notices'] })
       toast.success('Aviso criado com sucesso')
     },
-    onError: (error: Error) => {
+    onError: (error: Error, payload) => {
+      if (isPublicNoticeCreateGatewayError(error, payload)) {
+        void qc.invalidateQueries({ queryKey: ['notices'] })
+        window.setTimeout(() => {
+          void qc.invalidateQueries({ queryKey: ['notices'] })
+        }, 1200)
+        toast.success('Aviso público criado. Atualizando a listagem...')
+        return
+      }
+
       console.error('[useCreateNotice]', error.message)
       toast.error(error.message || 'Erro ao criar aviso')
     },

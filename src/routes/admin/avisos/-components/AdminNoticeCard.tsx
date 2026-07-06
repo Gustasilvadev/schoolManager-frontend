@@ -1,4 +1,11 @@
-import { CalendarDays, Eye, Pencil, RotateCcw, Trash2, Users } from 'lucide-react'
+import {
+  CalendarDays,
+  Eye,
+  Pencil,
+  RotateCcw,
+  Trash2,
+  Users,
+} from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { NoticePriorityBadge } from '@/components/shared/NoticePriorityBadge'
@@ -44,7 +51,7 @@ export function AdminNoticeCard({
   onDelete,
   onRestore,
 }: AdminNoticeCardProps) {
-  const isDeleted = notice.notice_status === 2
+  const isDeleted = Number(notice.notice_status) === 2
 
   return (
     <article
