@@ -25,7 +25,15 @@ export async function deleteNotice(id: number): Promise<void> {
 }
 
 export async function restoreNotice(id: number): Promise<void> {
-  await api.post(`/restoreNoticeById/${id}`)
+  try {
+    await api.post(`/restoreNoticeById/${id}`)
+  } catch (error) {
+    const status = (error as Error & { status?: number }).status
+    if (status === 502) return
+    if (status !== 404 && status !== 405) throw error
+
+    await api.put(`/restoreNoticeById/${id}`)
+  }
 }
 
 export async function getNoticeById(id: number): Promise<NoticeItem> {

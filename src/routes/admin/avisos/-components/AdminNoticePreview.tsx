@@ -9,7 +9,11 @@ import {
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { NoticePriorityBadge } from '@/components/shared/NoticePriorityBadge'
-import { formatNoticeDate, getNoticeReadersInfo } from '@/utils/noticeFormatters'
+import { Avatar } from '@/components/ui/Avatar'
+import {
+  formatNoticeDate,
+  getNoticeReadersInfo,
+} from '@/utils/noticeFormatters'
 import {
   getNoticeVisibilityLabel,
   NoticeVisibilityBadge,
@@ -19,7 +23,7 @@ import type { NoticeItem } from '@/types/notice'
 interface AdminNoticePreviewProps {
   notice: NoticeItem | null
   canEdit: boolean
-  teacherNameById: Map<number, string>
+  teacherInfoById: Map<number, { name: string; photo: string | null }>
   onViewFull: (notice: NoticeItem) => void
   onEdit: (notice: NoticeItem) => void
   onDelete: (notice: NoticeItem) => void
@@ -30,7 +34,7 @@ interface AdminNoticePreviewProps {
 export function AdminNoticePreview({
   notice,
   canEdit,
-  teacherNameById,
+  teacherInfoById,
   onViewFull,
   onClosePreview,
   onEdit,
@@ -39,8 +43,8 @@ export function AdminNoticePreview({
 }: AdminNoticePreviewProps) {
   if (!notice) {
     return (
-      <aside className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/30 p-6">
-        <div className="flex h-56 flex-col items-center justify-center text-center">
+      <aside className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/30 p-6 xl:flex xl:h-full xl:flex-col">
+        <div className="flex h-56 flex-col items-center justify-center text-center xl:h-full">
           <Eye className="mb-3 h-8 w-8 text-slate-600" />
 
           <p className="text-sm font-medium text-slate-300">
@@ -59,10 +63,13 @@ export function AdminNoticePreview({
   const visibilities = notice.notice_visibilities ?? []
   const readers = getNoticeReadersInfo(notice)
   const visibilityLabel = getNoticeVisibilityLabel(notice)
+  const isPublic = visibilities.length === 0
+  const readerProgress =
+    readers.total > 0 ? Math.round((readers.read / readers.total) * 100) : 0
 
   return (
-    <aside className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/80">
-      <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+    <aside className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/80 xl:h-full">
+      <div className="flex shrink-0 items-center justify-between border-b border-slate-800 px-5 py-4">
         <div className="flex items-center gap-2">
           <Eye className="h-4 w-4 text-blue-400" />
 
@@ -81,7 +88,7 @@ export function AdminNoticePreview({
         </button>
       </div>
 
-      <div className="space-y-6 px-5 py-5">
+      <div className="notice-preview-scroll min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-5 py-5">
         <div>
           <StatusBadge status={notice.notice_status} />
 
@@ -97,7 +104,9 @@ export function AdminNoticePreview({
         <div className="space-y-3 border-t border-slate-800 pt-5">
           <div className="flex items-center gap-3 text-sm text-slate-400">
             <CalendarDays className="h-4 w-4 text-slate-500" />
-            <span>Data de publicação: {formatNoticeDate(notice.notice_date)}</span>
+            <span>
+              Data de publicação: {formatNoticeDate(notice.notice_date)}
+            </span>
           </div>
 
           <div className="flex items-center gap-3 text-sm text-slate-400">
@@ -129,21 +138,34 @@ export function AdminNoticePreview({
               </p>
 
               <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                {visibilities.map((visibility) => (
-                  <div
-                    key={visibility.notice_visibility_id}
-                    className="rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2"
-                  >
-                    <p className="text-sm font-medium text-slate-200">
-                      {teacherNameById.get(visibility.teacher_id) ??
-                        `Professor #${visibility.teacher_id}`}
-                    </p>
+                {visibilities.map((visibility) => {
+                  const teacher = teacherInfoById.get(visibility.teacher_id)
+                  const teacherName =
+                    teacher?.name ?? `Professor #${visibility.teacher_id}`
+                  const viewed = Boolean(visibility.notice_visibility_viewed_in)
 
-                    <p className="text-xs text-slate-500">
-                      Vinculado ao aviso
-                    </p>
-                  </div>
-                ))}
+                  return (
+                    <div
+                      key={visibility.notice_visibility_id}
+                      className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2"
+                    >
+                      <Avatar
+                        src={teacher?.photo}
+                        name={teacherName}
+                        size="sm"
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-slate-200">
+                          {teacherName}
+                        </p>
+
+                        <p className="text-xs text-slate-500">
+                          {viewed ? 'Visualizado' : 'Pendente de leitura'}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -152,24 +174,41 @@ export function AdminNoticePreview({
         <div className="border-t border-slate-800 pt-5">
           <p className="text-sm font-medium text-white">Leitores</p>
 
-          <p className="mt-1 text-sm text-slate-400">
-            {readers.total > 0
-              ? `${readers.read} de ${readers.total} professores visualizaram este aviso.`
-              : 'Ainda não há leitura registrada para este aviso.'}
-          </p>
+          {isPublic ? (
+            <p className="mt-1 text-sm text-slate-400">
+              Aviso público — leitura não é rastreada.
+            </p>
+          ) : (
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-400">
+                  {readers.read} de {readers.total} visualizados
+                </span>
+                <span className="font-medium text-emerald-400">
+                  {readerProgress}%
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all"
+                  style={{ width: `${readerProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
+      </div>
 
-        <div className="space-y-3 border-t border-slate-800 pt-5">
-          <Button
-            type="button"
-            variant="ghost"
-            size="full"
-            onClick={() => onViewFull(notice)}
-          >
-            Ver aviso completo
-            <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
-          </Button>
-        </div>
+      <div className="shrink-0 border-t border-slate-800 bg-slate-950/95 px-5 py-4">
+        <Button
+          type="button"
+          variant="ghost"
+          size="full"
+          onClick={() => onViewFull(notice)}
+        >
+          Ver aviso completo
+          <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
+        </Button>
       </div>
     </aside>
   )

@@ -6,10 +6,24 @@ import { X } from 'lucide-react'
 import type { FieldError } from 'react-hook-form'
 import { Button } from '@/components/ui/Button'
 import { useCreateNotice, useNotice, useUpdateNotice } from '@/hooks/useNotices'
-import type { NoticeItem } from '@/types/notice'
+import type {
+  CreateNoticePayload,
+  NoticeItem,
+  UpdateNoticePayload,
+} from '@/types/notice'
 import { NoticeFormFields } from './NoticeFormFields'
 import { VisibilitySelector } from './VisibilitySelector'
 import { TeacherPicker } from './TeacherPicker'
+
+function isPublicNoticeCreateGatewayError(
+  error: Error,
+  payload: CreateNoticePayload,
+) {
+  const status = (error as Error & { status?: number }).status
+  const isPublic = !payload.teacher_ids || payload.teacher_ids.length === 0
+
+  return status === 502 && isPublic
+}
 
 const schema = z
   .object({
@@ -109,19 +123,34 @@ export function NoticeFormModal({
   if (!open) return null
 
   function onSubmit(values: NoticeFormValues) {
-    const payload = {
+    const basePayload = {
       notice_title: values.notice_title.trim(),
       notice_content: values.notice_content.trim(),
       notice_priority: values.notice_priority,
-      teacher_ids: values.visibility === 'restricted' ? values.teacher_ids : [],
     }
 
     if (isEditing && editing) {
+      const payload: UpdateNoticePayload = {
+        ...basePayload,
+        teacher_ids:
+          values.visibility === 'restricted' ? values.teacher_ids : [],
+      }
+
       updateNotice({ id: editing.notice_id, payload }, { onSuccess: onClose })
       return
     }
 
-    createNotice(payload, { onSuccess: onClose })
+    const payload: CreateNoticePayload =
+      values.visibility === 'restricted'
+        ? { ...basePayload, teacher_ids: values.teacher_ids }
+        : basePayload
+
+    createNotice(payload, {
+      onSuccess: onClose,
+      onError: (error) => {
+        if (isPublicNoticeCreateGatewayError(error, payload)) onClose()
+      },
+    })
   }
 
   function handleToggleTeacher(teacherId: number) {

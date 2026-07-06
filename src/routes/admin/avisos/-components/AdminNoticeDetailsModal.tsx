@@ -2,7 +2,11 @@ import { CalendarDays, Eye, ShieldCheck, Users, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { NoticePriorityBadge } from '@/components/shared/NoticePriorityBadge'
-import { formatNoticeDate, getNoticeReadersInfo } from '@/utils/noticeFormatters'
+import { Avatar } from '@/components/ui/Avatar'
+import {
+  formatNoticeDate,
+  getNoticeReadersInfo,
+} from '@/utils/noticeFormatters'
 import {
   getNoticeVisibilityLabel,
   NoticeVisibilityBadge,
@@ -12,14 +16,14 @@ import type { NoticeItem } from '@/types/notice'
 interface AdminNoticeDetailsModalProps {
   open: boolean
   notice: NoticeItem | null
-  teacherNameById: Map<number, string>
+  teacherInfoById: Map<number, { name: string; photo: string | null }>
   onClose: () => void
 }
 
 export function AdminNoticeDetailsModal({
   open,
   notice,
-  teacherNameById,
+  teacherInfoById,
   onClose,
 }: AdminNoticeDetailsModalProps) {
   if (!open || !notice) return null
@@ -27,10 +31,13 @@ export function AdminNoticeDetailsModal({
   const visibilityLabel = getNoticeVisibilityLabel(notice)
   const visibilities = notice.notice_visibilities ?? []
   const readers = getNoticeReadersInfo(notice)
+  const isPublic = visibilities.length === 0
+  const readerProgress =
+    readers.total > 0 ? Math.round((readers.read / readers.total) * 100) : 0
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
           <div className="flex items-center gap-2">
             <Eye className="h-4 w-4 text-blue-400" />
@@ -57,8 +64,6 @@ export function AdminNoticeDetailsModal({
           <div>
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <StatusBadge status={notice.notice_status} />
-              <NoticePriorityBadge priority={notice.notice_priority} />
-              <NoticeVisibilityBadge notice={notice} />
             </div>
 
             <h3 className="text-xl font-semibold leading-7 text-white">
@@ -73,7 +78,9 @@ export function AdminNoticeDetailsModal({
           <div className="space-y-3 border-t border-slate-800 pt-5">
             <div className="flex items-center gap-3 text-sm text-slate-400">
               <CalendarDays className="h-4 w-4 text-slate-500" />
-              <span>Data de publicação: {formatNoticeDate(notice.notice_date)}</span>
+              <span>
+                Data de publicação: {formatNoticeDate(notice.notice_date)}
+              </span>
             </div>
 
             <div className="flex items-center gap-3 text-sm text-slate-400">
@@ -90,7 +97,9 @@ export function AdminNoticeDetailsModal({
           </div>
 
           <div className="border-t border-slate-800 pt-5">
-            <p className="text-sm font-medium text-white">Quem pode visualizar</p>
+            <p className="text-sm font-medium text-white">
+              Quem pode visualizar
+            </p>
 
             <p className="mt-1 text-sm leading-6 text-slate-400">
               {visibilityLabel === 'Pública'
@@ -105,20 +114,35 @@ export function AdminNoticeDetailsModal({
                 </p>
 
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  {visibilities.map((visibility) => (
-                    <div
-                      key={visibility.notice_visibility_id}
-                      className="rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2"
-                    >
-                      <p className="text-sm font-medium text-slate-200">
-                        {teacherNameById.get(visibility.teacher_id) ??
-                          `Professor #${visibility.teacher_id}`}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Vinculado ao aviso
-                      </p>
-                    </div>
-                  ))}
+                  {visibilities.map((visibility) => {
+                    const teacher = teacherInfoById.get(visibility.teacher_id)
+                    const teacherName =
+                      teacher?.name ?? `Professor #${visibility.teacher_id}`
+                    const viewed = Boolean(
+                      visibility.notice_visibility_viewed_in,
+                    )
+
+                    return (
+                      <div
+                        key={visibility.notice_visibility_id}
+                        className="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2"
+                      >
+                        <Avatar
+                          src={teacher?.photo}
+                          name={teacherName}
+                          size="sm"
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-slate-200">
+                            {teacherName}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {viewed ? 'Visualizado' : 'Pendente de leitura'}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -127,13 +151,28 @@ export function AdminNoticeDetailsModal({
           <div className="border-t border-slate-800 pt-5">
             <p className="text-sm font-medium text-white">Leitores</p>
 
-            <p className="mt-1 text-sm text-slate-400">
-              {visibilities.length === 0
-                ? 'Aviso público — leitura não rastreada.'
-                : readers.read > 0
-                  ? `${readers.read} de ${readers.total} professores visualizaram este aviso.`
-                  : 'Nenhum professor visualizou este aviso ainda.'}
-            </p>
+            {isPublic ? (
+              <p className="mt-1 text-sm text-slate-400">
+                Aviso público — leitura não é rastreada.
+              </p>
+            ) : (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-400">
+                    {readers.read} de {readers.total} visualizados
+                  </span>
+                  <span className="font-medium text-emerald-400">
+                    {readerProgress}%
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-800">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all"
+                    style={{ width: `${readerProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end border-t border-slate-800 pt-5">

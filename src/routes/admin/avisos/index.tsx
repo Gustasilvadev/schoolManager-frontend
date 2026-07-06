@@ -3,7 +3,9 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Bell, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/Button'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useTeachers } from '@/hooks/useTeachers'
+import { useUsers } from '@/hooks/useUsers'
 import { NoticeFormModal } from './-components/NoticeFormModal'
 import { AdminNoticeCard } from './-components/AdminNoticeCard'
 import { AdminNoticePreview } from './-components/AdminNoticePreview'
@@ -32,6 +34,8 @@ function AvisosPage() {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [editing, setEditing] = useState<NoticeItem | null>(null)
   const [selectedNoticeId, setSelectedNoticeId] = useState<number | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<NoticeItem | null>(null)
+  const [pendingRestore, setPendingRestore] = useState<NoticeItem | null>(null)
 
   const selectedStatus = status === 'all' ? undefined : status
 
@@ -48,21 +52,32 @@ function AvisosPage() {
     limit: 100,
     includeDeleted: true,
   })
+  const { data: users } = useUsers({ limit: 500, includeDeleted: true })
 
-  const { mutate: deleteNotice } = useDeleteNotice()
-  const { mutate: restoreNotice } = useRestoreNotice()
+  const { mutate: deleteNotice, isPending: isDeleting } = useDeleteNotice()
+  const { mutate: restoreNotice, isPending: isRestoring } = useRestoreNotice()
 
   const notices = data?.notices ?? []
   const total = data?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / LIMIT))
 
-  const teacherNameById = useMemo(() => {
+  const teacherInfoById = useMemo(() => {
     const teachers = teachersData?.teachers ?? []
+    const photoByUserId = new Map(
+      users?.map((user) => [user.user_id, user.user_photo ?? null]) ?? [],
+    )
 
     return new Map(
-      teachers.map((teacher) => [teacher.teacher_id, teacher.teacher_name]),
+      teachers.map((teacher) => [
+        teacher.teacher_id,
+        {
+          name: teacher.teacher_name,
+          photo:
+            teacher.user_photo ?? photoByUserId.get(teacher.user_id) ?? null,
+        },
+      ]),
     )
-  }, [teachersData])
+  }, [teachersData, users])
 
   const selectedNotice = useMemo(() => {
     if (!selectedNoticeId) return null
@@ -133,23 +148,51 @@ function AvisosPage() {
   }
 
   function handleDelete(notice: NoticeItem) {
-    const confirmed = window.confirm(
-      `Deseja excluir o aviso "${notice.notice_title}"?`,
-    )
+    if (Number(notice.notice_status) === 2) {
+      setPendingRestore(notice)
+      return
+    }
 
-    if (!confirmed) return
-
-    deleteNotice(notice.notice_id)
+    setPendingDelete(notice)
   }
 
   function handleRestore(notice: NoticeItem) {
-    const confirmed = window.confirm(
-      `Deseja restaurar o aviso "${notice.notice_title}"?`,
-    )
+    if (Number(notice.notice_status) !== 2) {
+      setPendingDelete(notice)
+      return
+    }
 
-    if (!confirmed) return
+    setPendingRestore(notice)
+  }
 
-    restoreNotice(notice.notice_id)
+  function handleConfirmDelete() {
+    if (!pendingDelete) return
+
+    deleteNotice(pendingDelete.notice_id, {
+      onSuccess: () => {
+        setStatus(2)
+        setIncludeDeleted(true)
+        setPage(1)
+        setSelectedNoticeId(pendingDelete.notice_id)
+        setDetailsOpen(false)
+        setPendingDelete(null)
+      },
+    })
+  }
+
+  function handleConfirmRestore() {
+    if (!pendingRestore) return
+
+    restoreNotice(pendingRestore.notice_id, {
+      onSuccess: () => {
+        setStatus('all')
+        setIncludeDeleted(false)
+        setPage(1)
+        setSelectedNoticeId(pendingRestore.notice_id)
+        setDetailsOpen(false)
+        setPendingRestore(null)
+      },
+    })
   }
 
   function handleCloseModal() {
@@ -163,7 +206,7 @@ function AvisosPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-auto min-h-0 flex-col gap-6 xl:h-[calc(100vh-8rem)] xl:overflow-hidden">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600/10">
@@ -231,79 +274,83 @@ function AvisosPage() {
         </label>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="space-y-3">
-          {isLoading ? (
-            <div className="flex h-40 items-center justify-center rounded-xl border border-slate-800">
-              <p className="text-sm text-slate-500">Carregando avisos...</p>
-            </div>
-          ) : notices.length === 0 ? (
-            <div className="flex h-40 items-center justify-center rounded-xl border border-slate-800">
-              <p className="text-sm text-slate-500">Nenhum aviso encontrado.</p>
-            </div>
-          ) : (
-            notices.map((notice) => (
-              <AdminNoticeCard
-                key={notice.notice_id}
-                notice={notice}
-                selected={selectedNotice?.notice_id === notice.notice_id}
-                canEdit
-                onSelect={handleSelect}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onRestore={handleRestore}
-              />
-            ))
-          )}
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-slate-500">
-                Página {page} de {totalPages}
-              </p>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    setPage((current) => Math.max(1, current - 1))
-                  }
-                  disabled={page === 1}
-                  className="h-8 w-8 p-0"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    setPage((current) => Math.min(totalPages, current + 1))
-                  }
-                  disabled={page === totalPages}
-                  className="h-8 w-8 p-0"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:overflow-hidden">
+        <div className="relative min-h-0">
+          <div className="space-y-3 xl:h-full xl:overflow-y-auto xl:pr-2 xl:[scrollbar-width:none] xl:[&::-webkit-scrollbar]:hidden">
+            {isLoading ? (
+              <div className="flex h-40 items-center justify-center rounded-xl border border-slate-800">
+                <p className="text-sm text-slate-500">Carregando avisos...</p>
               </div>
-            </div>
-          )}
+            ) : notices.length === 0 ? (
+              <div className="flex h-40 items-center justify-center rounded-xl border border-slate-800">
+                <p className="text-sm text-slate-500">
+                  Nenhum aviso encontrado.
+                </p>
+              </div>
+            ) : (
+              notices.map((notice) => (
+                <AdminNoticeCard
+                  key={notice.notice_id}
+                  notice={notice}
+                  selected={selectedNotice?.notice_id === notice.notice_id}
+                  canEdit
+                  onSelect={handleSelect}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  onRestore={handleRestore}
+                />
+              ))
+            )}
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2">
+                <p className="text-xs text-slate-500">
+                  Página {page} de {totalPages}
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setPage((current) => Math.max(1, current - 1))
+                    }
+                    disabled={page === 1}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setPage((current) => Math.min(totalPages, current + 1))
+                    }
+                    disabled={page === totalPages}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-8 bg-gradient-to-t from-slate-950 to-transparent xl:block" />
         </div>
 
-        <div className="xl:sticky xl:top-6 xl:self-start">
-          <div className="xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
-            <AdminNoticePreview
-              notice={selectedNotice}
-              canEdit
-              teacherNameById={teacherNameById}
-              onViewFull={handleViewFull}
-              onClosePreview={handleClosePreview}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onRestore={handleRestore}
-            />
-          </div>
+        <div className="min-h-0 xl:h-full">
+          <AdminNoticePreview
+            notice={selectedNotice}
+            canEdit
+            teacherInfoById={teacherInfoById}
+            onViewFull={handleViewFull}
+            onClosePreview={handleClosePreview}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onRestore={handleRestore}
+          />
         </div>
       </div>
 
@@ -316,8 +363,29 @@ function AvisosPage() {
       <AdminNoticeDetailsModal
         open={detailsOpen}
         notice={selectedNotice}
-        teacherNameById={teacherNameById}
+        teacherInfoById={teacherInfoById}
         onClose={() => setDetailsOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title="Excluir Aviso"
+        description={`Deseja excluir o aviso "${pendingDelete?.notice_title}"?\nO comunicado será movido para excluídos e poderá ser restaurado posteriormente.`}
+        confirmLabel="Excluir"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onClose={() => setPendingDelete(null)}
+      />
+
+      <ConfirmDialog
+        open={pendingRestore !== null}
+        title="Restaurar Aviso"
+        description={`Deseja restaurar o aviso "${pendingRestore?.notice_title}"?\nO comunicado voltará a ficar disponível no sistema.`}
+        confirmLabel="Restaurar"
+        isLoading={isRestoring}
+        onConfirm={handleConfirmRestore}
+        onClose={() => setPendingRestore(null)}
       />
     </div>
   )
