@@ -295,13 +295,9 @@ function AvisosPage() {
           <div className="xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto">
             <AdminNoticePreview
               notice={selectedNotice}
-              canEdit
               teacherNameById={teacherNameById}
               onViewFull={handleViewFull}
               onClosePreview={handleClosePreview}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onRestore={handleRestore}
             />
           </div>
         </div>

@@ -38,7 +38,7 @@ export function ClassDisciplineFilter({
             onClassDisciplineChange(undefined)
           }}
           disabled={isLoadingClasses}
-          className="bg-slate-900 border border-slate-800 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[200px] outline-none transition-all hover:border-slate-700"
+          className="bg-slate-900 border border-slate-800 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  outline-none transition-all hover:border-slate-700"
         >
           <option value="">Todas as turmas</option>
           {classesData?.classes.map((cls) => (
@@ -61,7 +61,7 @@ export function ClassDisciplineFilter({
           }}
           disabled={!selectedClassId || isLoadingDisciplines}
           className={cn(
-            'bg-slate-900 border border-slate-800 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 min-w-[200px] outline-none transition-all hover:border-slate-700',
+            'bg-slate-900 border border-slate-800 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 outline-none transition-all hover:border-slate-700',
             !selectedClassId && 'opacity-50 cursor-not-allowed',
           )}
         >

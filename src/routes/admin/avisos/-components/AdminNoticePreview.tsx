@@ -18,24 +18,16 @@ import type { NoticeItem } from '@/types/notice'
 
 interface AdminNoticePreviewProps {
   notice: NoticeItem | null
-  canEdit: boolean
   teacherNameById: Map<number, string>
   onViewFull: (notice: NoticeItem) => void
-  onEdit: (notice: NoticeItem) => void
-  onDelete: (notice: NoticeItem) => void
-  onRestore: (notice: NoticeItem) => void
   onClosePreview: () => void
 }
 
 export function AdminNoticePreview({
   notice,
-  canEdit,
   teacherNameById,
   onViewFull,
   onClosePreview,
-  onEdit,
-  onDelete,
-  onRestore,
 }: AdminNoticePreviewProps) {
   if (!notice) {
     return (
@@ -55,7 +47,6 @@ export function AdminNoticePreview({
     )
   }
 
-  const isDeleted = notice.notice_status === 2
   const visibilities = notice.notice_visibilities ?? []
   const readers = getNoticeReadersInfo(notice)
   const visibilityLabel = getNoticeVisibilityLabel(notice)

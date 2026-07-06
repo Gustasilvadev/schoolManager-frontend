@@ -19,10 +19,12 @@ const STATUS_MAP: Record<StatusFilter, StatusValue> = {
 type StatusFilter = 'active' | 'deleted'
 
 export const Route = createFileRoute('/admin/avaliacoes/')({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { classId?: number; classDisciplineId?: number; status: StatusFilter } => ({
     classId: Number(search.classId) || undefined,
     classDisciplineId: Number(search.classDisciplineId) || undefined,
-    status: (search.status === 'deleted' ? 'deleted' : 'active') as StatusFilter,
+    status: search.status === 'deleted' ? 'deleted' : 'active',
   }),
   component: AdminAvaliacoesPage,
 })

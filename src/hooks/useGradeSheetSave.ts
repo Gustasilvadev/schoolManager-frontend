@@ -35,7 +35,7 @@ export function useGradeSheetSave(
     const toUpdate: Array<{ id: number; data: { grade_value: number } }> = []
 
     students.forEach((student) => {
-      const state = formState[student.student_id.toString()]
+      const state = formState[student.student_id.toString()] as RowState | undefined
       if (!state) return
 
       const existing = existingGrades.find((g) => g.student_id === student.student_id)

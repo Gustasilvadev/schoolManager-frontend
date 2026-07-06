@@ -6,6 +6,7 @@ export interface Teacher {
   teacher_status: number
   user_id: number
   user_photo?: string | null
+  discipline_count?: number
 }
 
 export interface TeacherDisciplinesResponse {

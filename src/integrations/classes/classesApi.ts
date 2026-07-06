@@ -103,6 +103,13 @@ export async function getClassDisciplines(
   return data
 }
 
+export async function getAllClassDisciplines(): Promise<ClassDisciplineEntry[]> {
+  const { data } = await api.get<ClassDisciplineEntry[]>(
+    '/listAllClassDisciplines',
+  )
+  return data
+}
+
 export async function addDisciplineToClass(
   classId: number,
   disciplineId: number,

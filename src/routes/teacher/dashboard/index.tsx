@@ -24,7 +24,7 @@ function DashboardPage() {
   const unreadCount = notices.filter((n) => !n.viewed).length
   const readCount = notices.filter((n) => n.viewed).length
 
-  const firstName = profile?.teacher?.teacher_name?.split(' ')[0]
+  const firstName = profile?.teacher?.teacher_name.split(' ')[0]
 
   return (
     <div className="space-y-6">

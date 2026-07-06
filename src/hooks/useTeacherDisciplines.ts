@@ -19,17 +19,10 @@ export function useTopTeachersByDisciplines(limit = 3) {
     queryKey: ['top-teachers-by-disciplines', limit],
     queryFn: async () => {
       const { teachers } = await listTeachers({ limit: 100 })
-      const results = await Promise.all(
-        teachers.map(async (teacher) => {
-          try {
-            const disc = await getTeacherDisciplines(teacher.teacher_id)
-            return { teacher, count: disc.discipline_ids.length }
-          } catch {
-            return { teacher, count: 0 }
-          }
-        }),
-      )
-      return results.sort((a, b) => b.count - a.count).slice(0, limit)
+      return teachers
+        .map((teacher) => ({ teacher, count: teacher.discipline_count ?? 0 }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, limit)
     },
     staleTime: 5 * 60 * 1000,
   })

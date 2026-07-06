@@ -2,6 +2,7 @@ import { GradeCell } from './GradeCell'
 import { Button } from '@/components/ui/Button'
 import { Save, AlertCircle, Calculator, Loader2, Users } from 'lucide-react'
 import { useGradeSheetSave } from '@/hooks/useGradeSheetSave'
+import type { RowState } from '@/hooks/useGradeSheetSave'
 import type { GradeSheetStudent } from '@/types/student'
 import type { Grade } from '@/types/grade'
 
@@ -92,7 +93,7 @@ export function GradeSheet({
                     initialValue={existing?.grade_value}
                     onChange={(data) => handleRowChange(student.student_id.toString(), data)}
                     isSaving={isSaving}
-                    saveStatus={formState[student.student_id.toString()]?.status}
+                    saveStatus={(formState[student.student_id.toString()] as RowState | undefined)?.status}
                   />
                 )
               })}

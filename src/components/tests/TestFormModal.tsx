@@ -14,8 +14,8 @@ import { AlertTriangle, Lock } from 'lucide-react'
 const testSchema = z.object({
   test_type: z.string().min(1, 'Obrigatório').max(45, 'Máximo 45 caracteres'),
   test_description: z.string().min(1, 'Obrigatório').max(45, 'Máximo 45 caracteres'),
-  class_id: z.string().optional().default(''),
-  class_discipline_id: z.string().optional().default(''),
+  class_id: z.string(),
+  class_discipline_id: z.string(),
 })
 
 type TestFormData = z.infer<typeof testSchema>
@@ -81,11 +81,11 @@ export function TestFormModal({ open, onClose, test }: TestFormModalProps) {
         {
           test_type: data.test_type,
           test_description: data.test_description,
-          class_discipline_id: parseInt(data.class_discipline_id!, 10),
+          class_discipline_id: parseInt(data.class_discipline_id, 10),
         },
         { onSuccess: () => { onClose(); reset() } },
       )
-    } else if (test) {
+    } else {
       updateTest(
         {
           id: test.test_id,
