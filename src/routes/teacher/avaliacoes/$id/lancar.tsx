@@ -72,7 +72,7 @@ function LancarNotasPage() {
         </div>
       </div>
 
-      {!classId && !isLoadingClassId && (
+      {!classId && (
         <div className="bg-yellow-900/20 border border-yellow-700/50 rounded-xl p-4 text-yellow-400 text-sm">
           Não foi possível identificar a turma desta avaliação. Verifique se a disciplina ainda está vinculada a uma turma ativa.
         </div>
